@@ -1,5 +1,4 @@
 //sets focus on load to the first input
-let validFlag = true;
 $('#name').focus();
 //hides the other occupation input
 $('#other-title').hide();
@@ -112,6 +111,10 @@ $('div').last().prev().hide();
 //when a payment version is selected, make all relevant elements visible
 $('#payment').on('change', function() {
     const value = $(this).val();
+    //this clears any errors when changing selections
+    $('#cc-num').attr('class','');
+    $('#zip').attr('class','');
+    $('#cvv').attr('class','');
     $('.bad-text').remove();
     if(value === 'credit card') {
         $('#credit-card').show();
@@ -119,6 +122,7 @@ $('#payment').on('change', function() {
         $('option[value="credit card"]').addClass('selected');
         $('div').last().hide();
         $('div').last().prev().hide();
+        //show appropriate div and unselect credit card option
     } else if(value === 'paypal'){
         $('#credit-card').hide();
         $('option[value="credit card"]').removeClass('selected');
@@ -137,31 +141,26 @@ function isEmail(email) {
     var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
     return regex.test(email);
 }
-//this makes an error message to use later
-const messageBad = (type) => {
-    return $(`<span class="bad-text" id="${type}-bad-mess">Invalid ${type}</span>`);
-};
-// here the error messages are appended
-$('#mail').prev().append(messageBad("e-mail"));
-$('#name').prev().append(messageBad("name"));
-//this error message didn't wasn't made with the function above because it is different from the rest
+
+const $checkBadEmail = $('<span class="bad-text" id="mail-bad-mess">Invalid e-mail</span>');
+const $checkBadName = $('<span class="bad-text" id="name-bad-mess">Invalid name</span>')
 const $checkBadMess = $('<span class="bad-text" id="check-bad-mess">Please select a checkbox</span>')
-$('.activities').prepend($checkBadMess);
+
 //hide the error elements
-$('#e-mail-bad-mess').hide();
-$('#name-bad-mess').hide();
-$('#check-bad-mess').hide();
+$('#e-mail-bad-mess').remove();
+$('#name-bad-mess').remove();
+$('#check-bad-mess').remove();
 //this is for the instant checking of email
 $('#mail').on('keyup', function(){
     //on keyup check email value and test it
    if(!isEmail($('#mail').val())){
        //if not valid the error and css classes are shown
        $('#mail').attr('class', 'bad-valid');
-       $('#e-mail-bad-mess').show();
+       $('#mail').prev().append($checkBadEmail);
     } else {
        //if a valid email then css removed and the error message is removed
-        $('#mail').attr('class', false);
-        $('#e-mail-bad-mess').hide();
+        $('#mail').attr('class', '');
+        $('#mail-bad-mess').remove();
     }
 });
 //submit button handler
@@ -169,19 +168,19 @@ $('button[type="submit"]').on('click', function(e){
     //checks email validation at button pressing time, same logic as above
    if(!isEmail($('#mail').val())){
        $('#mail').attr('class', 'bad-valid');
-       $('#e-mail-bad-mess').show();
+       $('#mail').prev().append($checkBadEmail);
    } else {
-       $('#mail').attr('class', false);
-       $('#e-mail-bad-mess').hide();
+       $('#mail').attr('class', '');
+       $('#mail-bad-mess').remove();
    }
    //checks to see if the name input is empty and shows error and sets css
    if($('#name').val() === ''){
        $('#name').attr('class', 'bad-valid');
-       $('#name-bad-mess').show()
+       $('#name').prev().append($checkBadName);
 
    } else {
        $('#name').attr('class', false);
-       $('#name-bad-mess').hide();
+       $('#name-bad-mess').remove();
    }
    //flag showing if any of the checkboxes tested below are checked
     let checkFlag = false;
@@ -193,10 +192,10 @@ $('button[type="submit"]').on('click', function(e){
     });
     if(!checkFlag){
         //show error if no checkboxes are checked
-        $('#check-bad-mess').show();
+        $('.activities').prepend($checkBadMess);
     } else {
         //hides error if at least one item is checked
-        $('#check-bad-mess').hide();
+        $('#check-bad-mess').remove();
     }
     //credit card validations, triggers on class 'selected' on credit card option
     if($('option[value="credit card"]').hasClass('selected')) {
@@ -209,7 +208,9 @@ $('button[type="submit"]').on('click', function(e){
             let string = "";
             let checker = "";
             if (type === "cc") {
+                //credit card number must be between 13 and 16 digits long
                 logic = ($numType.toString().length < 13) || ($numType.toString().length > 16);
+                //if cc number is 0 display different message
                 if ($numType.toString().length === 0) {
                     string = "Please enter a credit card number.";
                 } else {
@@ -217,7 +218,9 @@ $('button[type="submit"]').on('click', function(e){
                 }
                 checker = "cc-num";
             } else if (type === 'zip') {
+                //make sure the zip code is exactly 5 digits long
                 logic = ($numType.toString().length !== 5);
+                //if input is empty different message is shown
                 if ($numType.toString().length === 0) {
                     string = "Please enter a zip code.";
                 } else {
@@ -225,7 +228,9 @@ $('button[type="submit"]').on('click', function(e){
                 }
                 checker = type;
             } else if (type === 'cvv') {
+                //make sure the zip code is exactly 3 digits long
                 logic = ($numType.toString().length !== 3);
+                //same as type=zip
                 if ($numType.toString().length === 0) {
                     string = "Please enter a credit CVV code.";
                 } else {
@@ -233,6 +238,7 @@ $('button[type="submit"]').on('click', function(e){
                 }
                 checker = type;
             }
+            //if the input is numeric, and folows appropriate logic determined in the if-else block above
             if (!($.isNumeric($numType)) || logic) {
                 $(`#${checker}`).attr('class', 'bad-valid');
                 if ($(`#${type}-num-error`).length) {
@@ -248,10 +254,8 @@ $('button[type="submit"]').on('click', function(e){
         validate($zipNumber, "zip");
         validate($cvvNumber, "cvv");
     }
-    //stops the page from refreshing when submitted
-    console.log($('document').has('.bad-valid'));
-    if($('document').has('.bad-valid')){
+    //stops the page from refreshing if something is still invalid
+    if(!((document.querySelectorAll('.bad-valid').length === 0)&&(document.querySelectorAll('.bad-text').length === 0))){
         e.preventDefault();
-        console.log("this works!")
     }
 });
