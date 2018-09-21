@@ -112,7 +112,17 @@ button {
 button:hover {
 	background: #184c62;
 }
-
+.bad-valid:focus,
+.bad-valid {
+	border: red solid 2px;
+	background-color: indianred;
+}
+.bad-text {
+	margin-top: 10px;
+	margin-bottom: 20px;
+	display: block;
+	color: indianred;
+}
 /* ================================= 
   Page Styles
 ==================================== */
