@@ -1,9 +1,12 @@
 //sets focus on load to the first input
+let validFlag = true;
 $('#name').focus();
 //hides the other occupation input
 $('#other-title').hide();
+//this hides the color choices by default
+$('#colors-js-puns').hide();
 //shows the other occupation when the other selection is picked in the #title menu
-$('#title').on('change', function() {
+$('div #title').on('change', function() {
     const value = $(this).val();
     if(value === 'other'){
         $('#other-title').show();
@@ -14,12 +17,13 @@ $('#title').on('change', function() {
 //selectColor is used below to show and set selected on the $secondTerm
 //hides the colors in $firstTerm
 const selectColor = ($firstTerm, $secondTerm) => {
+    $('#colors-js-puns').show();
     $firstTerm.hide();
     $secondTerm.show();
     $secondTerm.first().attr('selected','selected');
     $firstTerm.first().attr('selected',false);
 };
-//this fires when the men
+//this fires when the menu item for shirt designs are chosen
 $('#design').on('change', function() {
     const value = $(this).val();
     //selects color for each design
@@ -28,9 +32,10 @@ $('#design').on('change', function() {
     //if design js puns is picked show the available colors with function selectColor
     if(value === 'js puns'){
         selectColor($heart, $jsPuns);
-
-    } else if(value ==='heart js'){
+    } else if(value ==='heart js') {
         selectColor($jsPuns, $heart);
+    } else if(value === 'Select Theme'){
+        $('#colors-js-puns').hide();
     }
 });
 //total for sumation of cost of checkbox items
@@ -97,25 +102,34 @@ $('input:checkbox').on('change', function(e){
 });
 //this disables the select option in the payment field
 $('option[value="select_method"]').attr('disabled',true);
+//this makes the credit card selection the default
+$('option[value="credit card"]').attr('selected', true);
+$('option[value="credit card"]').attr('class', 'selected');
 //this sets the defaults. hide all the payment elements
-$('#credit-card').hide();
+$('#credit-card').show();
 $('div').last().hide();
 $('div').last().prev().hide();
 //when a payment version is selected, make all relevant elements visible
 $('#payment').on('change', function() {
     const value = $(this).val();
-    if(value === 'credit card'){
+    $('.bad-text').remove();
+    if(value === 'credit card') {
         $('#credit-card').show();
+        //added and removed class selected to indicate when selected to apply validation
+        $('option[value="credit card"]').addClass('selected');
         $('div').last().hide();
         $('div').last().prev().hide();
     } else if(value === 'paypal'){
         $('#credit-card').hide();
+        $('option[value="credit card"]').removeClass('selected');
         $('div').last().hide();
         $('div').last().prev().show();
-    } else if(value == 'bitcoin'){
+    } else if(value === 'bitcoin'){
         $('#credit-card').hide();
-        $('div').last().show();
+        $('option[value="credit card"]').removeClass('selected');
         $('div').last().prev().hide();
+        $('div').last().show();
+
     }
 });
 //got this from https://stackoverflow.com/questions/2507030/email-validation-using-jquery I SUCK at regex! Sorry...
@@ -152,8 +166,6 @@ $('#mail').on('keyup', function(){
 });
 //submit button handler
 $('button[type="submit"]').on('click', function(e){
-    //stops the page from refreshing when submitted
-    e.preventDefault();
     //checks email validation at button pressing time, same logic as above
    if(!isEmail($('#mail').val())){
        $('#mail').attr('class', 'bad-valid');
@@ -163,7 +175,7 @@ $('button[type="submit"]').on('click', function(e){
        $('#e-mail-bad-mess').hide();
    }
    //checks to see if the name input is empty and shows error and sets css
-   if($('#name').val() == ''){
+   if($('#name').val() === ''){
        $('#name').attr('class', 'bad-valid');
        $('#name-bad-mess').show()
 
@@ -185,5 +197,61 @@ $('button[type="submit"]').on('click', function(e){
     } else {
         //hides error if at least one item is checked
         $('#check-bad-mess').hide();
+    }
+    //credit card validations, triggers on class 'selected' on credit card option
+    if($('option[value="credit card"]').hasClass('selected')) {
+        const $creditNumber = $('#cc-num').val();
+        const $zipNumber = $('#zip').val();
+        const $cvvNumber = $('#cvv').val();
+        //if credit card number is conditionally invalid
+        const validate = ($numType, type) => {
+            let logic = false;
+            let string = "";
+            let checker = "";
+            if (type === "cc") {
+                logic = ($numType.toString().length < 13) || ($numType.toString().length > 16);
+                if ($numType.toString().length === 0) {
+                    string = "Please enter a credit card number.";
+                } else {
+                    string = "Credit card numbers must be between 13 an 16 numbers.";
+                }
+                checker = "cc-num";
+            } else if (type === 'zip') {
+                logic = ($numType.toString().length !== 5);
+                if ($numType.toString().length === 0) {
+                    string = "Please enter a zip code.";
+                } else {
+                    string = "Zip codes must be exactly 5 digits long."
+                }
+                checker = type;
+            } else if (type === 'cvv') {
+                logic = ($numType.toString().length !== 3);
+                if ($numType.toString().length === 0) {
+                    string = "Please enter a credit CVV code.";
+                } else {
+                    string = "CVV code must be exactly 3 digits long."
+                }
+                checker = type;
+            }
+            if (!($.isNumeric($numType)) || logic) {
+                $(`#${checker}`).attr('class', 'bad-valid');
+                if ($(`#${type}-num-error`).length) {
+                    $(`#${type}-num-error`).remove();
+                }
+                $('#credit-card').after($(`<span class="bad-text" id="${type}-num-error">${string}</span>`));
+            } else {
+                $(`#${checker}`).attr('class', '');
+                $(`#${type}-num-error`).remove();
+            }
+        }
+        validate($creditNumber, "cc");
+        validate($zipNumber, "zip");
+        validate($cvvNumber, "cvv");
+    }
+    //stops the page from refreshing when submitted
+    console.log($('document').has('.bad-valid'));
+    if($('document').has('.bad-valid')){
+        e.preventDefault();
+        console.log("this works!")
     }
 });
